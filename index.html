@@ -111,8 +111,10 @@
 
   /* ============ HERO ============ */
   header{padding:84px 0 56px;position:relative}
-  .herologo{width:92px;height:92px;object-fit:contain;display:block;margin:0 0 22px -6px;filter:drop-shadow(0 0 18px var(--glow))}
-  @media(max-width:560px){.herologo{width:74px;height:74px}}
+  .titlerow{display:flex;align-items:center;gap:22px;margin-bottom:8px}
+  .titlerow h1.title{margin-bottom:0}
+  .herologo{width:104px;height:104px;flex:0 0 auto;object-fit:contain;filter:drop-shadow(0 0 16px var(--glow))}
+  @media(max-width:640px){.titlerow{flex-direction:column;align-items:flex-start;gap:14px}.herologo{width:64px;height:64px}}
   .eyebrow{
     font-family:var(--mono);font-size:.72rem;letter-spacing:.32em;text-transform:uppercase;
     color:var(--accent);margin-bottom:26px;display:inline-flex;align-items:center;gap:.8rem;
@@ -133,6 +135,7 @@
     background:linear-gradient(120deg,#7aa2ff 0%, #9b7aff 48%, #5fd3a3 100%);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
     letter-spacing:.01em;
+    padding-right:.1em;          /* italic N overflows its box; keep background-clip from cutting it */
   }
   .subtitle{
     font-family:var(--display);
@@ -405,9 +408,11 @@
 
 <header>
   <div class="wrap">
-    <img class="herologo reveal" src="tron_logo.png" alt="TRON logo">
     <div class="eyebrow reveal">Online Environments · Visual Reasoning RL</div>
-    <h1 class="title reveal"><span class="tron">TRON</span>: Targeted Rule-Verifiable<br>Online Environments</h1>
+    <div class="titlerow reveal">
+      <img class="herologo" src="tron_logo.png" alt="TRON logo">
+      <h1 class="title"><span class="tron">TRON</span>: Targeted <span style="white-space:nowrap">Rule-Verifiable</span><br>Online Environments</h1>
+    </div>
     <p class="subtitle reveal">A substrate for visual-reasoning RL where every training rollout is generated on demand by a controllable generator–verifier program — fresh, difficulty-controlled, and exactly graded.</p>
 
     <div class="authors reveal">
