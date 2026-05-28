@@ -36,8 +36,8 @@
     --line:#27304d;
     --line-soft:#1d2540;
     --text:#e7ecf7;
-    --text-dim:#9aa6c4;
-    --text-faint:#69749a;
+    --text-dim:#a8b3d1;
+    --text-faint:#808cb1;
 
     /* bucket palette — pulled from the paper figure */
     --spatial:#3b6fd4;
@@ -104,6 +104,8 @@
   .navlinks{display:flex;gap:1.6rem;font-size:.82rem;font-weight:500;color:var(--text-dim);font-family:var(--mono)}
   .navlinks a{transition:color .2s;position:relative}
   .navlinks a:hover{color:var(--text)}
+  .navlinks a.active{color:var(--text)}
+  .navlinks a.active::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;border-radius:2px;background:var(--accent);box-shadow:0 0 10px var(--glow)}
   @media(max-width:760px){.navlinks{display:none}}
 
   /* ============ HERO ============ */
@@ -172,7 +174,7 @@
   @media(max-width:720px){.metrics{grid-template-columns:repeat(2,1fr)}}
 
   /* ============ SECTION SHELL ============ */
-  section{padding:62px 0;position:relative}
+  section{padding:62px 0;position:relative;scroll-margin-top:72px}
   .sec-tag{
     font-family:var(--mono);font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;
     color:var(--text-faint);margin-bottom:14px;display:flex;align-items:center;gap:.7rem;
@@ -262,10 +264,12 @@
   @media(max-width:860px){.pipeline{grid-template-columns:1fr}}
 
   .figframe{
-    border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff;
-    box-shadow:0 30px 80px -40px rgba(0,0,0,.9);
+    border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    background:linear-gradient(180deg,#eef2f9,#e6ecf6);
+    padding:10px;
+    box-shadow:0 24px 70px -44px rgba(0,0,0,.85), inset 0 0 0 1px rgba(255,255,255,.04);
   }
-  .figframe img{display:block;width:100%;height:auto}
+  .figframe img{display:block;width:100%;height:auto;border-radius:10px}
   .figcap{font-family:var(--mono);font-size:.78rem;color:var(--text-faint);margin-top:14px;line-height:1.6;text-align:center}
 
   /* ============ BUCKETS GALLERY ============ */
@@ -785,6 +789,24 @@ if(!('IntersectionObserver' in window)){
     io.observe(el);
   });
 }
+
+/* ---------- nav scroll-spy ---------- */
+(function(){
+  const links = Array.prototype.slice.call(document.querySelectorAll('.navlinks a'));
+  const map = {};
+  links.forEach(a=>{ const h=a.getAttribute('href')||''; if(h.charAt(0)==='#') map[h.slice(1)]=a; });
+  const ids = Object.keys(map);                 // nav order == document order
+  if(!('IntersectionObserver' in window) || !ids.length) return;
+  const visible = new Set();
+  const spy = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting) visible.add(e.target.id); else visible.delete(e.target.id); });
+    let current = null;
+    for(const id of ids){ if(visible.has(id)){ current = id; break; } }   // topmost section on the centre line
+    links.forEach(a=>a.classList.remove('active'));
+    if(current && map[current]) map[current].classList.add('active');
+  },{rootMargin:'-50% 0px -50% 0px', threshold:0});  // a thin line through the viewport centre
+  ids.forEach(id=>{ const sec=document.getElementById(id); if(sec) spy.observe(sec); });
+})();
 
 /* ---------- bucket highlight on figure ---------- */
 const figImg = document.querySelector('.figframe img');
