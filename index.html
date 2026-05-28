@@ -512,7 +512,7 @@ answer = <span class="fn">solve</span>(state)</div>
     </div>
 
     <div class="figframe reveal">
-      <img src="tron_figure.png" alt="TRON method overview: constructing environments, generating training units, and DAPO RL training" loading="lazy" decoding="async">
+      <img src="tron_figure.png" alt="TRON method overview: constructing environments, generating training units, and DAPO RL training" decoding="async">
     </div>
     <p class="figcap reveal">TRON organizes 520 rule-verifiable generators into ability buckets. Each environment produces fresh<br>difficulty-controlled image–question rollouts with a deterministic verifier, audited before mixed or ability-specialist RL.</p>
   </div>
@@ -579,7 +579,7 @@ answer = <span class="fn">solve</span>(state)</div>
           <div class="gtag">Spatial · maze navigation</div>
           <h4>Shortest path</h4>
           <div class="gq">"Minimum number of moves from S to G?"</div>
-          <div class="ga"><span class="chk">✓</span> verified answer <b>8</b></div>
+          <div class="ga"><span class="chk">✓</span> verified answer <b id="ans-maze">8</b></div>
         </div>
       </div>
 
@@ -590,7 +590,7 @@ answer = <span class="fn">solve</span>(state)</div>
           <div class="gtag">Math · angle chasing</div>
           <h4>Triangle interior angle</h4>
           <div class="gq">"Two interior angles are 55° and 70°. Find x."</div>
-          <div class="ga"><span class="chk">✓</span> verified answer <b>55°</b></div>
+          <div class="ga"><span class="chk">✓</span> verified answer <b id="ans-angle">55°</b></div>
         </div>
       </div>
 
@@ -601,7 +601,7 @@ answer = <span class="fn">solve</span>(state)</div>
           <div class="gtag">Diagram · chart aggregation</div>
           <h4>Bar-chart reading</h4>
           <div class="gq">"Which category has the highest value?"</div>
-          <div class="ga"><span class="chk">✓</span> verified answer <b>C</b></div>
+          <div class="ga"><span class="chk">✓</span> verified answer <b id="ans-chart">C</b></div>
         </div>
       </div>
 
@@ -612,7 +612,7 @@ answer = <span class="fn">solve</span>(state)</div>
           <div class="gtag">Pattern · Raven matrix</div>
           <h4>Matrix completion</h4>
           <div class="gq">"Which shape completes the bottom-right cell?"</div>
-          <div class="ga"><span class="chk">✓</span> verified answer <b>▲</b></div>
+          <div class="ga"><span class="chk">✓</span> verified answer <b id="ans-matrix">▲</b></div>
         </div>
       </div>
 
@@ -623,7 +623,7 @@ answer = <span class="fn">solve</span>(state)</div>
           <div class="gtag">Counting · object enumeration</div>
           <h4>Occluded counting</h4>
           <div class="gq">"How many circles are in the image?"</div>
-          <div class="ga"><span class="chk">✓</span> verified answer <b>7</b></div>
+          <div class="ga"><span class="chk">✓</span> verified answer <b id="ans-count">7</b></div>
         </div>
       </div>
 
@@ -634,7 +634,7 @@ answer = <span class="fn">solve</span>(state)</div>
           <div class="gtag">Math · clock angle</div>
           <h4>Angle between hands</h4>
           <div class="gq">"What is the angle between the hour and minute hands?"</div>
-          <div class="ga"><span class="chk">✓</span> verified answer <b>97.5°</b></div>
+          <div class="ga"><span class="chk">✓</span> verified answer <b id="ans-clock">47.5°</b></div>
         </div>
       </div>
     </div>
@@ -837,60 +837,93 @@ btn.addEventListener('click',async ()=>{
 const C = {spatial:'#3b6fd4',math:'#e5484d',diagram:'#e8951c',pattern:'#8b5cf6',counting:'#1faf6b',ink:'#0c1322',line:'#2a3554',cell:'#e8edfa'};
 
 function setSVG(id, svg){ const el=document.getElementById(id); if(el) el.innerHTML=svg; }
+function setAns(id, val){ const el=document.getElementById(id); if(el) el.textContent=val; }
 
-/* maze 6x6 with path */
+/* maze 6x6 — walls + S/G are fixed; the path & move count are computed by BFS
+   so the drawn route never crosses a wall and the answer always matches. */
 (function(){
   const n=6, cell=44, pad=14, W=n*cell+pad*2, H=W;
-  const walls = new Set(['1,0','1,1','1,2','3,1','3,2','3,3','3,4','0,4','1,4','4,0','4,1','5,3','2,5','4,4']);
+  const wallList=[[1,1],[2,1],[3,1],[1,3],[2,3],[3,3],[4,3],[3,4],[3,5],[4,5],[5,2]];
+  const walls=new Set(wallList.map(w=>w[0]+','+w[1]));
+  const S=[0,5], G=[5,0], key=(x,y)=>x+','+y;
+  // BFS for the shortest path
+  const q=[S], prev={}; prev[key(S[0],S[1])]=null;
+  while(q.length){
+    const [x,y]=q.shift();
+    if(x===G[0]&&y===G[1]) break;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=x+dx, ny=y+dy;
+      if(nx<0||ny<0||nx>=n||ny>=n||walls.has(key(nx,ny))||(key(nx,ny) in prev)) continue;
+      prev[key(nx,ny)]=[x,y]; q.push([nx,ny]);
+    }
+  }
+  const path=[]; let c=G;
+  while(c){ path.push(c); c=prev[key(c[0],c[1])]; }
+  path.reverse();
+  const moves=path.length-1;
   let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${H}" fill="${C.ink}"/>`;
   for(let y=0;y<n;y++)for(let x=0;x<n;x++){
-    const fill = walls.has(x+','+y)? '#0a0f1c' : '#f3f6fd';
+    const fill = walls.has(key(x,y))? '#0a0f1c' : '#f3f6fd';
     s+=`<rect x="${pad+x*cell+2}" y="${pad+y*cell+2}" width="${cell-4}" height="${cell-4}" rx="4" fill="${fill}" stroke="${C.line}" stroke-width="1"/>`;
   }
-  // path S(0,5)->G(5,0) (illustrative 8-move)
-  const path=[[0,5],[1,5],[1,3],[2,3],[2,1],[3,1] ,[4,1],[5,1]];
   let d='';
   path.forEach((p,i)=>{ const cx=pad+p[0]*cell+cell/2, cy=pad+p[1]*cell+cell/2; d+=(i?'L':'M')+cx+' '+cy+' ';});
   s+=`<path d="${d}" fill="none" stroke="${C.spatial}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>`;
-  s+=`<text x="${pad+0*cell+cell/2}" y="${pad+5*cell+cell/2+5}" fill="#0a0f1c" font-family="JetBrains Mono" font-weight="700" font-size="16" text-anchor="middle">S</text>`;
-  s+=`<text x="${pad+5*cell+cell/2}" y="${pad+0*cell+cell/2+5}" fill="${C.math}" font-family="JetBrains Mono" font-weight="700" font-size="16" text-anchor="middle">G</text>`;
+  s+=`<text x="${pad+S[0]*cell+cell/2}" y="${pad+S[1]*cell+cell/2+5}" fill="#0a0f1c" font-family="JetBrains Mono" font-weight="700" font-size="16" text-anchor="middle">S</text>`;
+  s+=`<text x="${pad+G[0]*cell+cell/2}" y="${pad+G[1]*cell+cell/2+5}" fill="${C.math}" font-family="JetBrains Mono" font-weight="700" font-size="16" text-anchor="middle">G</text>`;
   s+=`</svg>`;
   setSVG('ex-maze',s);
+  setAns('ans-maze', moves);
 })();
 
-/* angle triangle */
+/* angle triangle — drawn to scale from the two given base angles, so the
+   figure actually shows 55°/70°; x is computed as 180 - A - B. */
 (function(){
-  const s=`<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg"><rect width="320" height="240" fill="${C.ink}"/>
-  <polygon points="50,190 270,190 150,55" fill="none" stroke="#f3f6fd" stroke-width="2.5"/>
-  <path d="M50,190 q26,-6 30,-26" fill="none" stroke="${C.math}" stroke-width="3"/>
-  <path d="M270,190 q-26,-6 -32,-22" fill="none" stroke="${C.math}" stroke-width="3"/>
-  <text x="92" y="178" fill="#cdd7f0" font-family="JetBrains Mono" font-size="15">55°</text>
-  <text x="214" y="178" fill="#cdd7f0" font-family="JetBrains Mono" font-size="15">70°</text>
-  <text x="150" y="80" fill="${C.math}" font-family="JetBrains Mono" font-weight="700" font-size="17" text-anchor="middle">x = ?</text>
-  </svg>`;
+  const A=55, B=70, x=180-A-B;
+  const Lx=78, Rx=242, by=200;            // base from L to R, on the baseline
+  const ta=Math.tan(A*Math.PI/180), tb=Math.tan(B*Math.PI/180);
+  const apx=(Lx*ta+Rx*tb)/(ta+tb);        // apex x (intersection of the two base rays)
+  const apy=by-(apx-Lx)*ta;               // apex y
+  const r=26;                             // angle-arc radius
+  // arc at L: from baseline (+x) up to the left edge (angle A above horizontal)
+  const aLx=Lx+r*Math.cos(A*Math.PI/180), aLy=by-r*Math.sin(A*Math.PI/180);
+  // arc at R: from baseline (-x) up to the right edge (angle B above horizontal)
+  const aRx=Rx-r*Math.cos(B*Math.PI/180), aRy=by-r*Math.sin(B*Math.PI/180);
+  let s=`<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg"><rect width="320" height="240" fill="${C.ink}"/>`;
+  s+=`<polygon points="${Lx},${by} ${Rx},${by} ${apx.toFixed(1)},${apy.toFixed(1)}" fill="none" stroke="#f3f6fd" stroke-width="2.5"/>`;
+  s+=`<path d="M${Lx+r},${by} A ${r} ${r} 0 0 0 ${aLx.toFixed(1)},${aLy.toFixed(1)}" fill="none" stroke="${C.math}" stroke-width="3"/>`;
+  s+=`<path d="M${Rx-r},${by} A ${r} ${r} 0 0 1 ${aRx.toFixed(1)},${aRy.toFixed(1)}" fill="none" stroke="${C.math}" stroke-width="3"/>`;
+  s+=`<text x="${Lx+34}" y="${by-12}" fill="#cdd7f0" font-family="JetBrains Mono" font-size="15">${A}°</text>`;
+  s+=`<text x="${Rx-58}" y="${by-12}" fill="#cdd7f0" font-family="JetBrains Mono" font-size="15">${B}°</text>`;
+  s+=`<text x="${apx.toFixed(1)}" y="${(apy+26).toFixed(1)}" fill="${C.math}" font-family="JetBrains Mono" font-weight="700" font-size="17" text-anchor="middle">x = ?</text>`;
+  s+=`</svg>`;
   setSVG('ex-angle',s);
+  setAns('ans-angle', x+'°');
 })();
 
 /* bar chart */
 (function(){
   const vals=[40,62,88,54,33], labs=['A','B','C','D','E'];
+  const maxi=vals.indexOf(Math.max(...vals));   // highlighted bar = answer
   const W=320,H=240, base=200, bw=34, gap=22, x0=42;
   let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${H}" fill="${C.ink}"/>`;
   s+=`<line x1="34" y1="${base}" x2="290" y2="${base}" stroke="${C.line}" stroke-width="1.5"/>`;
   vals.forEach((v,i)=>{
     const h=v*1.7, x=x0+i*(bw+gap);
-    const fill = i===2 ? C.diagram : '#39456b';
+    const fill = i===maxi ? C.diagram : '#39456b';
     s+=`<rect x="${x}" y="${base-h}" width="${bw}" height="${h}" rx="3" fill="${fill}"/>`;
     s+=`<text x="${x+bw/2}" y="${base+18}" fill="#9aa6c4" font-family="JetBrains Mono" font-size="13" text-anchor="middle">${labs[i]}</text>`;
   });
   s+=`</svg>`;
   setSVG('ex-chart',s);
+  setAns('ans-chart', labs[maxi]);
 })();
 
 /* raven matrix 3x3 */
 (function(){
   const W=300,H=240, cs=70, pad=24, gx=(W-3*cs)/2;
-  const shapes=['●','■','▲'];
+  const shapes=['●','■','▲'];                 // each cell = shapes[(r+c)%3]
+  const answer=shapes[(2+2)%3];               // missing bottom-right cell
   let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${H}" fill="${C.ink}"/>`;
   for(let r=0;r<3;r++)for(let c=0;c<3;c++){
     const x=gx+c*cs, y=pad+r*cs;
@@ -901,6 +934,7 @@ function setSVG(id, svg){ const el=document.getElementById(id); if(el) el.innerH
   }
   s+=`</svg>`;
   setSVG('ex-matrix',s);
+  setAns('ans-matrix', answer);
 })();
 
 /* counting circles */
@@ -914,22 +948,26 @@ function setSVG(id, svg){ const el=document.getElementById(id); if(el) el.innerH
   pts.forEach((p,i)=>{ s+=`<circle cx="${p[0]}" cy="${p[1]}" r="${p[2]}" fill="${C.counting}" opacity="${0.55+0.06*i}"/>`; });
   s+=`</svg>`;
   setSVG('ex-count',s);
+  setAns('ans-count', pts.length);
 })();
 
-/* analog clock ~3:25 -> 97.5° */
+/* analog clock — hands drawn from a fixed time; the angle between them is
+   computed from that same time so the answer can't drift. (3:25 -> 47.5°) */
 (function(){
   const W=300,H=240,cx=150,cy=120,R=88;
+  const hh=3, mm=25;
+  const hd=(hh%12)*30+0.5*mm, md=mm*6;          // hand angles from 12 o'clock
+  let ang=Math.abs(hd-md); ang=Math.min(ang,360-ang);
   let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><rect width="${W}" height="${H}" fill="${C.ink}"/>`;
   s+=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="#f6f8fd" stroke="${C.line}" stroke-width="3"/>`;
   for(let i=1;i<=12;i++){ const a=(90-30*i)*Math.PI/180; const x=cx+0.82*R*Math.cos(a), y=cy-0.82*R*Math.sin(a); s+=`<text x="${x}" y="${y+5}" fill="#1a2138" font-family="JetBrains Mono" font-weight="700" font-size="12" text-anchor="middle">${i}</text>`; }
-  // hour hand 3:25 -> 30*3+0.5*25=102.5 deg from 12
-  const hd=102.5, md=150;
   const ha=(90-hd)*Math.PI/180, ma=(90-md)*Math.PI/180;
   s+=`<line x1="${cx}" y1="${cy}" x2="${cx+0.5*R*Math.cos(ha)}" y2="${cy-0.5*R*Math.sin(ha)}" stroke="${C.math}" stroke-width="5" stroke-linecap="round"/>`;
   s+=`<line x1="${cx}" y1="${cy}" x2="${cx+0.72*R*Math.cos(ma)}" y2="${cy-0.72*R*Math.sin(ma)}" stroke="${C.spatial}" stroke-width="3.5" stroke-linecap="round"/>`;
   s+=`<circle cx="${cx}" cy="${cy}" r="4" fill="#1a2138"/>`;
   s+=`</svg>`;
   setSVG('ex-clock',s);
+  setAns('ans-clock', ang+'°');
 })();
 </script>
 </body>
